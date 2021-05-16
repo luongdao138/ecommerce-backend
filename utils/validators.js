@@ -63,15 +63,20 @@ const categoryValidator = (body) => {
 
 const productValidator = (body) => {
   const errors = {};
-  const { title, description, price, category, quantity } = body;
+  const { title, description, price, category, quantity, discountPrice } = body;
   if (!title || title.trim() === '') errors.title = 'Title is required!';
   if (!description || description.trim() === '')
     errors.description = 'Description is required!';
-  if (!price || price.trim() === '') errors.price = 'Price is required!';
+  if (!price || price.toString().trim() === '')
+    errors.price = 'Price is required!';
   else if (Number.isNaN(price)) errors.price = 'Price must be a number!';
+  if (!discountPrice || discountPrice.toString().trim() === '')
+    errors.discountPrice = 'Discount price is required!';
+  else if (Number.isNaN(discountPrice))
+    errors.discountPrice = 'Discount price must be a number!';
   if (!category || category.trim() === '')
     errors.category = 'Category is required!';
-  if (!quantity || quantity.trim() === '')
+  if (!quantity || quantity.toString().trim() === '')
     errors.quantity = 'Quantity is required!';
 
   return {
