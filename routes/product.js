@@ -14,6 +14,36 @@ router.post(
   uploadMiddleware('products').array('image'),
   productControllers.createProduct
 );
-router.get('/:slug', productControllers.getProductsBySlug);
+router.get('/:slug', productControllers.getProductsByCategorySlug);
+router.get('/detail/:slug', productControllers.getProductBySlug);
+router.put(
+  '/photos/:slug',
+  validateToken,
+  validateAdmin,
+  uploadMiddleware('products').array('image'),
+  productControllers.uploadMorePhotos
+);
+
+router.put(
+  '/photos/update/:slug',
+  validateToken,
+  validateAdmin,
+  uploadMiddleware('products').single('image'),
+  productControllers.updatePhoto
+);
+
+router.put(
+  '/photos/delete/:slug',
+  validateToken,
+  validateAdmin,
+  productControllers.deletePhoto
+);
+
+router.put(
+  '/:slug',
+  validateToken,
+  validateAdmin,
+  productControllers.updateProduct
+);
 
 module.exports = router;
