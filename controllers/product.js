@@ -3,14 +3,15 @@ const { productValidator } = require('../utils/validators');
 const slugify = require('slugify');
 const Category = require('../models/category');
 const Page = require('../models/page');
-const fs = require('fs');
-const path = require('path');
-
+const cloudinary = require('../utils/cloudinary');
+const Review = require('../models/review');
+const Rating = require('../models/rating');
 const {
   getDescendantCats,
   createCategories,
   findCatBySlug,
 } = require('../utils/categories');
+const { countAverageRating } = require('../utils/rating');
 
 module.exports = {
   createProduct: async (req, res) => {
@@ -38,16 +39,26 @@ module.exports = {
       updatedBy: req.user._id,
     };
 
-    if (req.files.length > 0) {
-      productObj.images = req.files.map((file) => file.filename);
-    }
+    try {
+      let images = [];
+      for (let file of req.body.image) {
+        const uploadedResponse = await cloudinary.uploader.upload(file, {
+          upload_preset: 'ecommerce',
+        });
 
-    const newProduct = new Product(productObj);
-    const savedProduct = await newProduct.save();
-    return res.json({
-      success: true,
-      product: savedProduct,
-    });
+        images.push(uploadedResponse.public_id);
+      }
+      productObj.images = images;
+      const newProduct = new Product(productObj);
+      const savedProduct = await newProduct.save();
+      return res.json({
+        success: true,
+        product: savedProduct,
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json('Someting went wrong!');
+    }
   },
   getProducts: async (req, res) => {
     const order = req.query.order ? req.query.order : 'desc';
@@ -61,6 +72,7 @@ module.exports = {
         .sort({ [sortBy]: order })
         .skip(skip)
         .limit(limit);
+
       const total = await Product.countDocuments();
       return res.json({
         success: true,
@@ -109,11 +121,23 @@ module.exports = {
       const total = await Product.find({
         category: { $in: descendants },
       }).countDocuments();
-      products = products.map((product) => ({
-        ...product._doc,
-        reviewCount: product.reviews.length,
-        ratingCount: product.ratings.length,
-      }));
+      products = await Promise.all(
+        products.map(async (product) => {
+          const reviewCount = await Review.find({
+            productId: product._id,
+          }).countDocuments();
+          const ratings = await Rating.find({
+            productId: product._id,
+          });
+
+          return {
+            ...product._doc,
+            reviewCount,
+            ratingCount: ratings.length,
+            averageRating: countAverageRating(ratings),
+          };
+        })
+      );
 
       return res.json({
         success: true,
@@ -215,10 +239,6 @@ module.exports = {
   },
   uploadMorePhotos: async (req, res) => {
     console.log('hit api');
-    let images = req.files;
-    images = images.map((x) => x.filename);
-    console.log(images);
-
     const { slug } = req.params;
     try {
       const product = await Product.findOne({ slug });
@@ -227,6 +247,14 @@ module.exports = {
           success: false,
           error: 'Product not found!',
         });
+
+      let images = [];
+      for (let file of req.body.images) {
+        const uploadResponse = await cloudinary.uploader.upload(file, {
+          upload_preset: 'ecommerce',
+        });
+        images.push(uploadResponse.public_id);
+      }
 
       await Product.updateOne(
         { _id: product._id },
@@ -248,9 +276,7 @@ module.exports = {
     }
   },
   updatePhoto: async (req, res) => {
-    const { filename } = req.body;
-
-    const image = req.file;
+    const { filename, image } = req.body;
     const { slug } = req.params;
 
     try {
@@ -261,12 +287,15 @@ module.exports = {
           error: 'Product not found!',
         });
 
-      fs.unlinkSync(
-        path.join(path.dirname(__dirname), 'uploads', 'products', filename)
-      );
+      await cloudinary.uploader.destroy(filename);
+      const uploadRes = await cloudinary.uploader.upload(image, {
+        upload_preset: 'ecommerce',
+      });
 
       let newImages = product.images;
-      newImages = newImages.map((x) => (x === filename ? image.filename : x));
+      newImages = newImages.map((x) =>
+        x === filename ? uploadRes.public_id : x
+      );
 
       await Product.updateOne({ slug }, { images: newImages });
       return res.json({
@@ -294,9 +323,7 @@ module.exports = {
           error: 'Product not found!',
         });
 
-      fs.unlinkSync(
-        path.join(path.dirname(__dirname), 'uploads', 'products', filename)
-      );
+      await cloudinary.uploader.destroy(filename);
 
       let newImages = product.images;
       newImages = newImages.filter((x) => x !== filename);

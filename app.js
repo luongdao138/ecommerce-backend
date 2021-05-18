@@ -6,12 +6,8 @@ const path = require('path');
 
 const PORT = process.env.PORT || 5000;
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false }));
-app.use(
-  '/uploads/products',
-  express.static(path.join(__dirname, 'uploads', 'products'))
-);
 app.use(
   '/uploads/categories',
   express.static(path.join(__dirname, 'uploads', 'categories'))
@@ -65,6 +61,8 @@ const categoryRouter = require('./routes/category');
 const productRouter = require('./routes/product');
 const orderRouter = require('./routes/order');
 const bannerRouter = require('./routes/banner');
+const ratingRouter = require('./routes/rating');
+const reviewRouter = require('./routes/review');
 
 // router middlewares
 app.use('/api/v1/admin/auth', adminAuthRouter);
@@ -74,3 +72,5 @@ app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/products', productRouter);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/banners', bannerRouter);
+app.use('/api/v1/ratings', ratingRouter);
+app.use('/api/v1/reviews', reviewRouter);

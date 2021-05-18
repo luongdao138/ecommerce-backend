@@ -11,7 +11,6 @@ router.post(
   '/',
   validateToken,
   validateAdmin,
-  uploadMiddleware('products').array('image'),
   productControllers.createProduct
 );
 router.get('/:slug', productControllers.getProductsByCategorySlug);
@@ -20,7 +19,6 @@ router.put(
   '/photos/:slug',
   validateToken,
   validateAdmin,
-  uploadMiddleware('products').array('image'),
   productControllers.uploadMorePhotos
 );
 
@@ -28,7 +26,6 @@ router.put(
   '/photos/update/:slug',
   validateToken,
   validateAdmin,
-  uploadMiddleware('products').single('image'),
   productControllers.updatePhoto
 );
 

@@ -9,6 +9,10 @@ const reviewSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Product',
   },
+  title: {
+    type: String,
+    required: true,
+  },
   content: {
     type: String,
     required: true,
@@ -17,6 +21,18 @@ const reviewSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  likes: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  ],
+  dislikes: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  ],
 });
 
 const Review = model('Review', reviewSchema);
